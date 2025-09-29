@@ -49,8 +49,24 @@ def get_urls(film6, kind):
     print(kind)
     for url in urls:
         call_count += 1
-        item = get_data_from_server(url)
-        print(f'  - {item['name']}')
+        my_thread = Worker()    
+        my_thread.start()                         
+        my_thread.join()   
+        #item = get_data_from_server(url)
+        #print(f'  - {item['name']}')
+
+class Worker(threading.Thread):
+
+    def __init__(self, url):
+        threading.Thread.__init__(self)
+        self.url = url
+        self.item = None
+
+    def run(self):
+        item = get_data_from_server(self.url)
+        print(f'  - {self.item['name']}')
+        
+            
 
 def main():
     global call_count
