@@ -63,16 +63,31 @@ import time
 import random
 import threading
 
+FORKS = 5
 PHILOSOPHERS = 5
 MAX_MEALS_EATEN = PHILOSOPHERS * 5 # NOTE: Total meals to be eaten, not per philosopher!
 
-def main():
     # TODO - Create the forks.
     # TODO - Create PHILOSOPHERS philosophers.
     # TODO - Start them eating and thinking.
     # TODO - Display how many times each philosopher ate.
-    pass
+think_duration = random.uniform(1, 3)
+   
 
+def eating():
+  for i in FORKS:
+    time.sleep(think_duration)
+
+def thinking():
+  time.sleep(think_duration)
+  
+
+
+def main():
+    for i in PHILOSOPHERS:
+       ...
+        
+        
 
 if __name__ == '__main__':
-    main()
+  main()

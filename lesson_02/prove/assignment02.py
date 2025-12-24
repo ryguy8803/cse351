@@ -59,13 +59,11 @@ class ATM_Reader(threading.Thread):
                 line = line.strip()
                 if line.startswith('#'):
                     continue
-                
                 parts = line.split(',')
                 if len(parts) == 3:
                     account_number = int(parts[0])
                     transaction_type = parts[1].strip()
                     amount = parts[2].strip()
-
                     if transaction_type == 'd':
                         self.bank.deposit(account_number, amount)
                     elif transaction_type == 'w':

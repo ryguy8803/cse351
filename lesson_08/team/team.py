@@ -73,8 +73,30 @@ PHILOSOPHERS = 5
 MAX_MEALS_EATEN = PHILOSOPHERS * 5 # NOTE: Total meals to be eaten, not per philosopher!
 
 # TODO - Create the Waiter class.
+class Waiter:
+    def __init__(self):
+        self.lock = threading.lock()
+
+    def can_eat():
+      ...
+    def done_eat():
+      ...
+
+class Philosopher:
+    def __init__(self):
+       ...
+    def want_eat():
+       ...
+    def want_think():
+       ...
+        
+    
 
 def main():
+    
+    forks = 5
+
+    
     # TODO - Get an instance of the Waiter.
     # TODO - Create the forks???
     # TODO - Create PHILOSOPHERS philosophers.

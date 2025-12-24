@@ -67,6 +67,7 @@ current_color_index = 0
 thread_count = 0
 stop = False
 speed = SLOW_SPEED
+thread_lock = threading.Lock()
 
 def get_color():
     """ Returns a different color when called """
@@ -79,14 +80,68 @@ def get_color():
 
 
 # TODO: Add any function(s) you need, if any, here.
+def find_end_recursive(maze, pos, color):
+
+    global stop
+
+    if stop:
+        return
+    
+    row, col = pos
+
+    if maze.at_end(row, col):
+        with thread_lock:
+            if not stop:
+                stop = True
+                maze.move(row, col, color)
+        return
+    
+    if stop:
+        return
+    
+    maze.move(row, col, color)
+
+    possible_moves = maze.get_possible_moves(row, col)
+
+    if not possible_moves:
+        return
+    
+    next_pos_for_current_thread = possible_moves[0]
+
+    new_thread_moves = possible_moves[1:]
+
+    if new_thread_moves:
+        for next_pos in new_thread_moves:
+            new_color = get_color()
+
+            with thread_lock:
+                global thread_count
+                thread_count += 1
+
+            thread = threading.Thread(target=find_end_recursive, args= (maze, next_pos, new_color))
+            thread.start()
+
+    find_end_recursive(maze, next_pos_for_current_thread, color)
 
 
 def solve_find_end(maze):
     """ Finds the end position using threads. Nothing is returned. """
     # When one of the threads finds the end position, stop all of them.
     global stop
-    stop = False
+    global thread_count
+    
+    with thread_lock:
+        stop = False
+        thread_count = 1
+        global current_color_index
+        current_color_index = 0
 
+    start_pos = maze.get_start_pos()
+    initial_color = get_color()
+
+    initial_thread = threading.Thread(target=find_end_recursive, args=(maze, start_pos, initial_color))
+    initial_thread.start()
+    initial_thread.join()
 
 
 

@@ -19,6 +19,7 @@ import threading
 import multiprocessing as mp
 
 from cse351 import *
+THREADS = 2
 
 def merge_sort(arr):
     """
@@ -88,6 +89,15 @@ def merge_normal(arr):
 def merge_sort_thread(arr):
     # TODO - Add your code here to use threads.
     #        call, you need to create a thread to handle that call
+    request_threads = []
+    print(f'Starting {THREADS} request threads...')
+    for i in range(THREADS):
+        t = threading.Thread(target=merge_sort, args=(arr))
+        request_threads.append(t)
+        t.start()
+    for t in request_threads:
+        t.join()
+    print ('All requested threads finished')
     pass
 
 

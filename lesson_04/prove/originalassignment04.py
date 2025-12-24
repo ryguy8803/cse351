@@ -22,29 +22,35 @@ import time
 from common import TOP_API_URL, CITIES, get_data_from_server, Log
 from cse351 import *
 
-THREADS = 350              # TODO - set for your program
-WORKERS = 2
+THREADS = 20                # TODO - set for your program
+WORKERS = 10
 RECORDS_TO_RETRIEVE = 5000  # Don't change
 REQUEST_QUEUE_DONE = None
 DATA_QUEUE_DONE = None
 
 # ---------------------------------------------------------------------------
-def retrieve_weather_data(request_queue, data_queue, barrier):
+def retrieve_weather_data(request_queue, data_queue):
 # TODO - fill out this thread function (and arguments)
     while True:
         command = request_queue.get()
-        if command == REQUEST_QUEUE_DONE:
-            order = barrier.wait()
-            if order == 1:
-                data_queue.put(DATA_QUEUE_DONE)
+        if command is REQUEST_QUEUE_DONE:
+            data_queue.put(DATA_QUEUE_DONE)
+            request_queue.put(REQUEST_QUEUE_DONE)
+            request_queue.task_done()
+            print(f'{threading.current_thread().name} finished retrieving.')
             break 
         else:
             name, recno = command
-            url = f'{TOP_API_URL}/record/{name}/{recno}'
-            data = get_data_from_server(url)
-            weather_data = (data['city'], data['date'], data['temp'])
-            data_queue.put(weather_data)
-
+    
+    url = f'{TOP_API_URL}/record/{name}/{recno}'
+    data = get_data_from_server(url)
+        
+    weather_data = (data['city'], data['date'], data['temp'])
+    data_queue.put(weather_data)
+        
+    request_queue.task_done()
+        
+    
 
 
 # ---------------------------------------------------------------------------
@@ -58,12 +64,15 @@ class Worker(threading.Thread):
     def run(self):
         while True:
             data = self.data_queue.get()
+
             if data is DATA_QUEUE_DONE:
                 self.data_queue.put(DATA_QUEUE_DONE)
+                self.data_queue.task_done()
                 break
+
             city, date, temp = data
             self.noaa.add_temp_record(city, temp)
-           
+            self.data_queue.task_done()
 
         print(f'{self.name} finished working')
 
@@ -82,8 +91,10 @@ class NOAA:
             self.data[city].append(temp)
 
     def get_temp_details(self, city):
-        temps = self.data.get(city)
-
+        temps = self.data.get(city, [])
+        if not temps:
+            return 0.0
+        
         return sum(temps) / len(temps)
 
 
@@ -141,24 +152,23 @@ def main():
     print('===================================')
 
     records = RECORDS_TO_RETRIEVE
-#---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
     # TODO - Create any queues, pipes, locks, barriers you need
     #barrier = threading.Barrier(records)
 
-    # barrier = threading.Barrier(2)
+    #barrier.wait()
     request_queue = Queue(maxsize=10)
     data_queue = Queue(maxsize=10)
-    barrier = threading.Barrier(THREADS)
     
     request_threads = []
     print(f'Starting {THREADS} request threads...')
     for i in range(THREADS):
-        t = threading.Thread(target=retrieve_weather_data, args=(request_queue, data_queue, barrier))
+        t = threading.Thread(target=retrieve_weather_data, args=(request_queue, data_queue), name=f'ReqThread-{i}')
         request_threads.append(t)
         t.start()
     
     workers = []
-    print(f'starting {WORKERS} worker threads...')
+    print('starting {WORKERS} worker threads...')
     for i in range (WORKERS):
         w = Worker(data_queue, noaa)
         workers.append(w)
@@ -168,20 +178,22 @@ def main():
     for name in CITIES:
         for recno in range(records):
             request_queue.put((name, recno))
+
+    request_queue.join()
     print('Request que empty. sending all done sentinel')
-    
-    for _ in range(THREADS):
-        request_queue.put(REQUEST_QUEUE_DONE)
+    request_queue.put(REQUEST_QUEUE_DONE)
 
     for t in request_threads:
         t.join()
     print ('All requested threads finished')
 
+    data_queue.join()
+    print('data queue empty')
+
     for w in workers:
         w.join()
     print('all worker threads finished')
 
-#---------------------------------------------------------------------------------------------------------------------------------------------------------------------
     # End server - don't change below
     data = get_data_from_server(f'{TOP_API_URL}/end')
     print(data)

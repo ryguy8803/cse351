@@ -56,19 +56,32 @@ class Queue351():
         return len(self.__items) + extra
 
 # ---------------------------------------------------------------------------
-def producer():
+def producer(q, que_space_avalible:threading.Semaphore, item_in_que:threading.Semaphore):
     for i in range(PRIME_COUNT):
         number = random.randint(1, 1_000_000_000_000)
+        que_space_avalible.aquire()
+        q.put(number)
+        item_in_que.release()
         # TODO - place on queue for workers
-
+    
     # TODO - select one producer to send the "All Done" message
-
+    id = barrier.wait()
+    if id == 0:
+        q.put(None) 
 # ---------------------------------------------------------------------------
-def consumer():
+def consumer(f, q, queue_space_avalible:threading.Semaphore, item_in_que:threading.Semaphore):
+    while True:
+        item_in_que.aquire()
     # TODO - get values from the queue and check if they are prime
+        item = q.get()
+        if item is None:
+            break
     # TODO - if prime, write to the file
+        if is_prime(item):
+            f.write()
+
     # TODO - if "All Done" message, exit the loop
-    ...
+        
 
 # ---------------------------------------------------------------------------
 def main():
